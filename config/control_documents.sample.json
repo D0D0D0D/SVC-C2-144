@@ -1,0 +1,43 @@
+{
+  "sample_origin": "SAMPLE-SVC-C2-144-MARKETPLACE-CONTROL-DOCUMENTS",
+  "documents": [
+    {
+      "kind": "criteria",
+      "ref": "CRIT-STD",
+      "version": "v3",
+      "document": {
+        "content_hash": "hashcrit",
+        "approved": true,
+        "effective_from": "2026-01-01T00:00:00+09:00",
+        "conditions": [
+          {
+            "condition_id": "CONDA",
+            "condition_ref": "SAMPLE-2.1 ロールバック手順の検証記録"
+          },
+          {
+            "condition_id": "CONDB",
+            "condition_ref": "SAMPLE-2.2 顧客承認の対象範囲"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "freeze_calendar",
+      "ref": "CAL-FY26",
+      "version": "v1",
+      "document": {
+        "content_hash": "hashcal",
+        "approved": true,
+        "effective_from": "2026-01-01T00:00:00+09:00",
+        "windows": [
+          {
+            "window_id": "SAMPLEWINQ",
+            "window_ref": "SAMPLE-四半期決算凍結",
+            "start": "2026-09-25T00:00:00+09:00",
+            "end": "2026-10-05T00:00:00+09:00"
+          }
+        ]
+      }
+    }
+  ]
+}

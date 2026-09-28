@@ -1,0 +1,45 @@
+# Agent Manifest — AgentRegistry entry point
+# AgentRegistry (mediator/registry/agent_registry.py) reads every key below at
+# ROOT level — do NOT nest keys under an `agent:` block. That nested shape is
+# invisible to the registry (falls back to defaults / KeyErrors) and the
+# registry key degrades to the collision-prone `default/unknown@latest`.
+id: "SVC-C2-144"
+name: "ChangeFreezeExceptionReviewAgent"
+namespace: "svc"
+version: "1.0.0"
+enabled: true
+category: "Cat 2"
+# Static generation contract. Omitted by legacy templates defaults to deterministic.
+# Stage 3 (sufficiency_draft) calls a real LLM through the config["llm"] injection seam
+# (BaseLLM), so the truthful declaration is llm — see docs/02_design.md.
+generation_mode: "llm"  # deterministic | llm
+industry: "SVC"
+
+# Opaque compatibility metadata. It is not an inheritance selector or gate input.
+base_type: "AgentBaseGraph"
+
+# Entry point — single dotted import path (module.Class), NOT split module:/class:.
+# AgentRegistry does `manifest["class"].rsplit(".", 1)` to get (module, class_name).
+# Renamed during implementation in the same commit as the code, exactly as the design declared.
+# `Graph` remains as an alias in src/graph/graph.py so the standalone entry point keeps
+# working; the manifest points at the real name.
+class: "src.graph.graph.ChangeFreezeExceptionReviewGraph"
+
+# Security
+required_trust_level: "VERIFIED_EXTERNAL"
+
+# Compile-time gates (AgentRegistry._compile_and_cache) — declare every secret/extra
+# actually used, or the agent loads with those checks silently disabled.
+# ANTHROPIC_API_KEY is deliberately NOT under requires.secrets:
+# that field is enforced via require_at_compile() (hard-fail if absent,
+# mediator/registry/agent_registry.py), but server.py reads the key via .get()
+# and degrades gracefully — declaring it here would contradict the server
+# contract and fail registry-based compiles that should boot key-less.
+requires:
+  secrets: []      # every ctx.secrets.require("KEY") call must be listed here
+  extras: ["anthropic"]  # server.py constructs AnthropicClient by default; must exist in shared/utils/extras_map.py EXTRAS_MAP
+
+# generation_mode is deployment identity, not a tunable provider setting. Runtime parameters
+# (max_retry, timeout_s, hitl, memory_enabled, ...) live in
+# config/config.yaml — AgentRegistry loads that file separately and passes it
+# as Graph(config=...). Do NOT put them here.

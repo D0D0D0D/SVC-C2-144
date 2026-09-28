@@ -1,0 +1,73 @@
+# Runtime parameters — SVC-C2-144
+# Loaded by AgentRegistry (and by src/api/server.py on the standalone path), passed as Graph(config=...).
+# This is a SEPARATE file from config/agent.yaml (the static manifest): agent.yaml is AgentRegistry's
+# discovery entry point, this file is the agent's own runtime config, keyed by whatever your Graph/node
+# code reads via self.config.get(...). agent.yaml is the static manifest; runtime parameters live here.
+#
+# Values here are INITIAL DESIGN VALUES; template users tune them for their environment.
+# Design rationale: docs/02_design.md §config/agent.yaml / config/config.yaml の設計値.
+
+# --- Retrieval ---
+top_k: 8                              # past review perspectives recalled in Stage 2
+
+# --- Evidence contract ---
+min_quote_chars: 12                   # lower bound on a verbatim quote_span; below this, `quote in span_text`
+                                      # is vacuous (an empty string is a substring of everything)
+max_quotable_chars: 120               # upper bound; a longer span is prose, not an atomic fact, and is
+                                      # classified unquotable (span_kind: unclassified)
+min_recall_hits: 3                    # Stage 2: absolute minimum term matches for a recall hit. Absolute,
+                                      # not a ratio — a ratio raises the bar for long text until nothing matches
+max_rationale_chars: 1000             # cap on the model-visible decision_rationale_safe projection
+
+# --- Input quality gate (applied after NFKC + zero-width removal; ratios are over the
+#     normalized character count). See docs/02_design.md §API 契約 for the exact contract. ---
+text_gate_max_replacement_ratio: 0.02    # U+FFFD ratio above this -> reject (mojibake / broken OCR paste)
+text_gate_max_control_ratio: 0.01        # C0/C1 control chars (excluding tab/newline) above this -> reject
+text_gate_min_readable_ratio: 0.80       # letters + digits + punctuation + whitespace below this -> reject
+text_gate_max_chars: 20000               # per-field length ceiling -> reject
+
+# --- Data governance ---
+# Derived-record and audit retention periods belong to the external data-lifecycle
+# controller that enumerates expired rows. This runtime does not schedule that job,
+# so decorative retention_days / audit_retention_days keys are deliberately absent.
+payload_ttl_s: 3600                   # payload_store TTL for sensitive free-text request bodies.
+                                      # MUST exceed the expected HITL dwell time: `refine` re-runs
+                                      # Stage 3 and re-reads the body, so a payload that expires
+                                      # mid-review makes refine unusable (docs/02 §payload の生存期間契約).
+
+# --- Execution ---
+max_retry: 3
+timeout_s: 60
+
+# --- Checkpointing / HITL ---
+# HITL is used. The reviewer who prepares the packet for the CAB works with the draft in the same
+# session: the LLM draft, source_registry and recall_refs must survive the pause, or a resumed run
+# would be editing a different draft. See docs/02_design.md §HITL 方針 for the four-question test.
+#
+# memory_enabled MUST be true when hitl.enabled is true (ConfigError at compile time otherwise) —
+# interrupt()/resume needs a checkpointer. Both the outer graph and the inner workflow graph need
+# this declaration, and they need SEPARATE checkpointer instances (§checkpointer 3 契約).
+memory_enabled: true
+hitl:
+  enabled: true
+  max_hitl: 8      # MAX NUMBER OF RE-DRAFTS (not the total interrupt count).
+                   # Declared because the HITL config contract requires it and PB-7 / AgentRegistry read it.
+                   # NOTE: Cat 2 does not enforce it — the hitl_count circuit breaker lives in Cat 3's
+                   # ToolActNode; AgentBaseGraph only validates that this is a positive integer.
+                   # THIS TEMPLATE enforces it itself via State["refine_count"]: the deterministic
+                   # route on refine_action stops runaway VALUES, not runaway COUNTS (§HITL 方針).
+hitl_session_ttl_s: 3600   # Lifetime of a suspended HITL checkpoint. payload_ttl_s bounds the BODY,
+                           # not the checkpoint (`confirm` never reads the body), so without this a
+                           # persistent checkpointer keeps derived data forever. On expiry the
+                           # checkpoint AND payload are deleted; a later /resume gets 410 hitl_expired.
+                           # Keep it aligned with payload_ttl_s.
+
+# --- Deployment metadata ---
+auth_runbook_url: "docs/07_operation_guide.md#認証情報の発行更新失効"
+                           # Required at FastAPI lifespan startup; empty is a deployment blocker.
+
+# NOTE: the reference time ("now") used for freeze-window comparison is NOT configured here, and is
+# NOT passed through config at all: the graph is constructed once per process, so a per-request value
+# cannot travel that way. The entry adapter fixes it once per request as a timezone-aware ISO-8601
+# value and puts it in State as `evaluated_at` — see docs/02_design.md
+# §凍結カレンダーと時間窓の決定論契約 (contract #2).

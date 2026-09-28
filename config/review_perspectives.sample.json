@@ -1,0 +1,27 @@
+{
+  "sample_origin": "SAMPLE-SVC-C2-144-MARKETPLACE-REVIEW-PERSPECTIVES",
+  "perspectives": [
+    {
+      "db_record": {
+        "history_ref": "SAMPLE-HIST-AA",
+        "criteria_version_ref": "CRIT-STD",
+        "criteria_content_hash": "hashcrit",
+        "condition_id": "CONDA",
+        "request_summary_safe": "SAMPLE 本番DBのロールバック手順を伴う凍結期間中の変更申請",
+        "decision_outcome": "rejected",
+        "decision_rationale_safe": "SAMPLE ロールバック手順の検証記録と復旧時間の根拠が不足していた",
+        "perspective_code": "SAMPLE-ROLLBACK-VERIFICATION",
+        "status": "active"
+      },
+      "kb_document": {
+        "history_ref": "SAMPLE-HIST-AA",
+        "condition_id": "CONDA",
+        "criteria_version_ref": "CRIT-STD",
+        "criteria_content_hash": "hashcrit",
+        "request_summary_safe": "SAMPLE 本番DBのロールバック手順を伴う凍結期間中の変更申請",
+        "decision_rationale_safe": "SAMPLE ロールバック手順の検証記録と復旧時間の根拠が不足していた",
+        "perspective_code": "SAMPLE-ROLLBACK-VERIFICATION"
+      }
+    }
+  ]
+}
